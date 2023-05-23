@@ -1,5 +1,5 @@
 const config = {
-  token: "<insert discord token>",
+  token: "",
 };
 
-export { config };
+module.exports = { config };
