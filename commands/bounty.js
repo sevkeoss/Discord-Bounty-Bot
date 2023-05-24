@@ -20,8 +20,8 @@ module.exports = {
     )
     .addNumberOption((option) =>
       option
-        .setName("amount")
-        .setDescription("How much tao are you rewarding?")
+        .setName("bounty-number")
+        .setDescription("Which bounty is this for?")
         .setRequired(true)
     ),
   async execute(interaction) {
@@ -42,12 +42,12 @@ module.exports = {
       });
     }
 
-    const amount = interaction.options.getNumber("amount");
+    const bounty_number = interaction.options.getNumber("bounty-number");
 
     // ensure amount is valid
-    if (amount <= 0) {
+    if (bounty_number <= 0) {
       return interaction.reply({
-        content: "You must specify a valid amount of tao.",
+        content: "You must specify a valid bounty number.",
         ephemeral: true,
       });
     }
@@ -61,10 +61,10 @@ module.exports = {
 
     active_bounties.set(
       bounty_id,
-      new Bounty(interaction.user, hunter, amount, bounty_id)
+      new Bounty(interaction.user, hunter, bounty_number, bounty_id)
     );
 
-    content = `You want to create a bounty with ${hunter} for a total of ${amount}.`;
+    content = `You want to create a bounty with ${hunter} for bounty ${bounty_number}?`;
     return interaction
       .reply({
         content: content,

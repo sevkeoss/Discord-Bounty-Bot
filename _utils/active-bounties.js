@@ -1,16 +1,16 @@
 class Bounty {
   lister;
   hunter;
-  amount;
+  bounty_number;
   bounty_id;
   channel; // null until bounty is accepted by initiator
   hunter_accepted = false;
   middlemen = [];
 
-  constructor(lister, hunter, amount, bounty_id) {
+  constructor(lister, hunter, bounty_number, bounty_id) {
     this.lister = lister;
     this.hunter = hunter;
-    this.amount = amount;
+    this.bounty_number = bounty_number;
     this.bounty_id = bounty_id;
   }
 

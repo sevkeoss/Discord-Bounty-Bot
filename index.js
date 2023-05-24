@@ -91,7 +91,7 @@ async function start() {
 
           // deny everyone from seeing inside
           const channel = await interaction.guild.channels.create({
-            name: `${activeBounty.lister.username}-${activeBounty.hunter.username}-${key}`,
+            name: `${activeBounty.lister.username}-${activeBounty.hunter.username}-bounty${activeBounty.bounty_number}`,
             type: 0,
             parent: active_bounties_category,
             permissionOverwrites: [
@@ -122,7 +122,7 @@ async function start() {
           );
 
           // send message alerting both users to the channel and request for confirmation by partner
-          const content = `${activeBounty.lister.username} has initiated a bounty request with you ${activeBounty.hunter.username} and is offering a reward of ${activeBounty.amount} TAO. \n\nPlease confirm or cancel by clicking the buttons below.`;
+          const content = `${activeBounty.lister.username} has initiated a bounty request with you ${activeBounty.hunter.username} for bounty ${activeBounty.bounty_number}. \n\nPlease accept or deny by clicking the buttons below.`;
           await channel.send({
             content: content,
             components: [
@@ -130,9 +130,7 @@ async function start() {
                 new Discord.ButtonBuilder()
                   .setCustomId(`confirmBounty-${key}`)
                   .setLabel("Accept")
-                  .setStyle(ButtonStyle.Success)
-              ),
-              new Discord.ActionRowBuilder().addComponents(
+                  .setStyle(ButtonStyle.Success),
                 new Discord.ButtonBuilder()
                   .setCustomId(`cancelBounty-${key}`)
                   .setLabel("Deny")
@@ -171,7 +169,7 @@ async function start() {
           });
 
           const roleNITeam = interaction.guild.roles.cache.find(
-            (role) => role.name === "NI Team"
+            (role) => role.name === config.team_role_name
           );
           await activeBounty.channel.permissionOverwrites.create(roleNITeam, {
             ViewChannel: true,
@@ -210,7 +208,7 @@ async function start() {
           );
 
           const parsedChannel = interaction.guild.channels.cache.find(
-            (channel) => channel.name === "Archives"
+            (channel) => channel.name === config.archives_category
           );
 
           await interaction
@@ -227,7 +225,7 @@ async function start() {
           await activeBounty.channel.setParent(parsedChannel.id);
 
           const roleNITeam = interaction.guild.roles.cache.find(
-            (role) => role.name === "NI Team"
+            (role) => role.name === config.team_role_name
           );
 
           await activeBounty.channel.permissionOverwrites.set([
@@ -250,7 +248,7 @@ async function start() {
           active_bounties.delete(key);
         } else {
           await interaction.reply({
-            content: "Only members of the NI Team can complete this bounty.",
+            content: "Only members of the NI Team can complete the bounty.",
             ephemeral: true,
           });
         }
@@ -259,38 +257,37 @@ async function start() {
         // check if person who clicked is the person who requested the trade
         let cancel_party;
         if (!!activeBounty && interaction.user.id === activeBounty.lister.id) {
-          console.log("Initial party backed out of trade");
-
-          // TODO: make a way to log the back out of this trade and tie it to the user
           cancel_party = "lister";
         }
 
-        const content = `Trade has been terminated by ${
+        const content = `Bounty has been cancelled by ${
           !!activeBounty
             ? cancel_party == "lister"
               ? activeBounty.lister
               : activeBounty.hunter
             : "system reset"
-        }.\nDeleting channel one minute from now...`;
+        }.\nDeleting channel 15 secs from now...`;
 
         // remove buttons from message
-        await interaction.channel.send({
-          content: content,
-          components: [],
-        });
-        const TRADE_CHANNEL = interaction.channel;
+        await interaction
+          .update({
+            content: content,
+            components: [],
+          })
+          .catch((_) => null);
 
+        const TRADE_CHANNEL = interaction.channel;
         setTimeout(async () => {
           await TRADE_CHANNEL.delete()
             .then(() => active_bounties.delete(key))
             .catch((_) => {
               console.log(
-                "Failed to delete channel. It might already deleted.",
+                "Failed to delete channel. It might already be deleted.",
                 TRADE_CHANNEL.name,
                 TRADE_CHANNEL.id
               );
             });
-        }, 60000);
+        }, 15000);
         return;
     }
   });
@@ -322,7 +319,7 @@ async function GetActiveBountiesCategory(
   guild,
   POSITION_LENGTH
 ) {
-  const ChannelName = "Active Bounties";
+  const ChannelName = config.active_bounties_category;
   let active_bounties_category = await CreateChannelCategory({
     all_categories,
     ChannelName,
@@ -333,7 +330,7 @@ async function GetActiveBountiesCategory(
 }
 
 async function GetArchivesCategory(all_categories, guild, POSITION_LENGTH) {
-  const ChannelName = "Archives";
+  const ChannelName = config.archives_category;
   let active_bounties_category = await CreateChannelCategory({
     all_categories,
     ChannelName,
