@@ -4,7 +4,7 @@ const {
   ButtonBuilder,
   ButtonStyle,
 } = require("discord.js");
-const { Bounty, active_bounties } = require("../_utils/active-bounties");
+const { Bounty, active_bounties } = require("../_utils/bounty");
 
 module.exports = {
   data: new SlashCommandBuilder()

@@ -14,10 +14,11 @@ require("dotenv").config();
 const fs = require("node:fs");
 const path = require("node:path");
 const { CreateChannelCategory } = require("./_helpers/CreateChannelCategory");
-const { active_bounties } = require("./_utils/active-bounties");
+const { active_bounties } = require("./_utils/bounty");
 const { PermissionFlagsBits } = require("discord.js");
 const { ButtonStyle } = require("discord.js");
 const { config } = require("./_utils/config");
+const { archive_channel } = require("./_helpers/archive-channel");
 
 const TimeFormat = new Intl.DateTimeFormat("en-US", {
   // no year
@@ -122,7 +123,7 @@ async function start() {
           );
 
           // send message alerting both users to the channel and request for confirmation by partner
-          let content = `${activeBounty.lister.username} has initiated a bounty request with you ${activeBounty.hunter.username} for bounty ${activeBounty.bounty_number}. \n\nPlease accept or deny by clicking the buttons below. \n\nNote: all messages in bounty channels will be logged and can be used as evidence in the event of a dispute. \n\nWARNING: Scammers will try to impersonate other users through DMs. For that reason, All bounties are to be conducted within this server. Please be careful when interacting with someone you don't know. If you are unsure, please ask a moderator for help.`;
+          let content = `${activeBounty.lister} has initiated a bounty request with you ${activeBounty.hunter} for bounty ${activeBounty.bounty_number}. \n\nPlease accept or deny by clicking the buttons below. \n\nNote: all messages in bounty channels will be logged and can be used as evidence in the event of a dispute. \n\nWARNING: Scammers will try to impersonate other users through DMs. For that reason, All bounties are to be conducted within this server. Please be careful when interacting with someone you don't know. If you are unsure, please ask a moderator for help.`;
           await channel.send({
             content: content,
             components: [
@@ -157,7 +158,7 @@ async function start() {
             })
             .catch((_) => null);
 
-          const content = `Hello ${activeBounty.initiator} and ${activeBounty.partner}, your bounty transaction will be handled by an NI Team member. \n\n Steps\n1. An NI Team member will post a TAO address for the lister to send to.\n2. Once paid, the bounty is officially activated and the NI Team member will ask the hunter to begin work on the bounty.\n3. Once bounty has been completed and verified by the bounty lister, the NI Team member will send the TAO to the bounty hunter.\n\nNote: Since all middlepersons are volunteers and offer up their time freely, feel free to send an extra 1-5% as tip if you're feeling generous (Sellers: Always send 0.126 TAO extra to pay for the transaction fee).`;
+          const content = `Hello ${activeBounty.lister} and ${activeBounty.hunter}, your bounty transaction will be handled by an NI Team member. \n\n Steps\n1. An NI Team member will post a TAO address for the lister to send to.\n2. Once paid, the bounty is officially activated and the NI Team member will ask the hunter to begin work on the bounty.\n3. Once bounty has been completed and verified by the bounty lister, the NI Team member will send the TAO to the bounty hunter.\n\nNote: Since all middlepersons are volunteers and offer up their time freely, feel free to send an extra 1-5% as tip if you're feeling generous (Sellers: Always send 0.126 TAO extra to pay for the transaction fee).`;
           await interaction.channel.send({
             content: content,
             components: [
@@ -209,44 +210,19 @@ async function start() {
             POSITION_LENGTH
           );
 
-          const parsedChannel = interaction.guild.channels.cache.find(
-            (channel) => channel.name === config.archives_category
-          );
-
           await interaction
             .update({
               components: [],
             })
             .catch((_) => null);
 
-          await interaction.channel.send({
-            content: "Bounty Archived",
-            components: [],
-          });
+          await interaction.channel
+            .send({
+              content: "Bounty Complete. Archiving...",
+            })
+            .catch((_) => null);
 
-          await activeBounty.channel.setParent(parsedChannel.id);
-
-          const roleNITeam = interaction.guild.roles.cache.find(
-            (role) => role.name === config.team_role_name
-          );
-
-          await activeBounty.channel.permissionOverwrites.set([
-            {
-              id: interaction.guild.roles.everyone,
-              deny: [
-                PermissionFlagsBits.ViewChannel,
-                PermissionFlagsBits.SendMessages,
-                PermissionFlagsBits.AddReactions,
-                PermissionFlagsBits.CreatePrivateThreads,
-                PermissionFlagsBits.CreatePublicThreads,
-              ],
-            },
-            {
-              id: roleNITeam.id,
-              allow: [PermissionFlagsBits.ViewChannel],
-            },
-          ]);
-
+          archive_channel(interaction, activeBounty);
           active_bounties.delete(key);
         } else {
           await interaction.reply({
@@ -262,35 +238,36 @@ async function start() {
           cancel_party = "lister";
         }
 
-        const content = `Bounty has been cancelled by ${
+        const roleNITeam = interaction.guild.roles.cache.find(
+          (role) => role.name === config.team_role_name
+        );
+
+        const declined_content = `${roleNITeam} Bounty has been declined by ${
           !!activeBounty
             ? cancel_party == "lister"
               ? activeBounty.lister
               : activeBounty.hunter
             : "system reset"
-        }.\nDeleting channel 15 secs from now...`;
+        }.`;
 
         // remove buttons from message
         await interaction
           .update({
-            content: content,
+            content: interaction.content,
             components: [],
           })
           .catch((_) => null);
 
-        const TRADE_CHANNEL = interaction.channel;
-        setTimeout(async () => {
-          await TRADE_CHANNEL.delete()
-            .then(() => active_bounties.delete(key))
-            .catch((_) => {
-              console.log(
-                "Failed to delete channel. It might already be deleted.",
-                TRADE_CHANNEL.name,
-                TRADE_CHANNEL.id
-              );
-            });
-        }, 15000);
-        return;
+        await interaction.channel
+          .send({
+            content: declined_content,
+            components: [],
+          })
+          .catch((err) => console.log(err));
+
+        archive_channel(interaction, activeBounty);
+        active_bounties.delete(key);
+        break;
     }
   });
 
