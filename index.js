@@ -122,7 +122,7 @@ async function start() {
           );
 
           // send message alerting both users to the channel and request for confirmation by partner
-          const content = `${activeBounty.lister.username} has initiated a bounty request with you ${activeBounty.hunter.username} for bounty ${activeBounty.bounty_number}. \n\nPlease accept or deny by clicking the buttons below.`;
+          let content = `${activeBounty.lister.username} has initiated a bounty request with you ${activeBounty.hunter.username} for bounty ${activeBounty.bounty_number}. \n\nPlease accept or deny by clicking the buttons below. \n\nNote: all messages in bounty channels will be logged and can be used as evidence in the event of a dispute. \n\nWARNING: Scammers will try to impersonate other users through DMs. For that reason, All bounties are to be conducted within this server. Please be careful when interacting with someone you don't know. If you are unsure, please ask a moderator for help.`;
           await channel.send({
             content: content,
             components: [
@@ -139,8 +139,9 @@ async function start() {
             ],
           });
 
+          content = `Bounty request sent to ${activeBounty.hunter}. \n\nWARNING: Scammers will try to impersonate other users through DMs. For that reason, all bounties are to be conducted within this server. Please be careful when interacting with someone you don't know. If you are unsure, please ask a moderator for help.`;
           await interaction.update({
-            content: `Bounty request sent to ${activeBounty.hunter}`,
+            content: content,
             components: [],
           });
         }
@@ -156,8 +157,9 @@ async function start() {
             })
             .catch((_) => null);
 
+          const content = `Hello ${activeBounty.initiator} and ${activeBounty.partner}, your bounty transaction will be handled by an NI Team member. \n\n Steps\n1. An NI Team member will post a TAO address for the lister to send to.\n2. Once paid, the bounty is officially activated and the NI Team member will ask the hunter to begin work on the bounty.\n3. Once bounty has been completed and verified by the bounty lister, the NI Team member will send the TAO to the bounty hunter.\n\nNote: Since all middlepersons are volunteers and offer up their time freely, feel free to send an extra 1-5% as tip if you're feeling generous (Sellers: Always send 0.126 TAO extra to pay for the transaction fee).`;
           await interaction.channel.send({
-            content: `Bounty accepted! Adding NI team to channel`,
+            content: content,
             components: [
               new Discord.ActionRowBuilder().addComponents(
                 new Discord.ButtonBuilder()
