@@ -158,7 +158,7 @@ async function start() {
             })
             .catch((_) => null);
 
-          const content = `Hello ${activeBounty.lister} and ${activeBounty.hunter}, your bounty transaction will be handled by an NI Team member. \n\n Steps\n1. An NI Team member will post a TAO address for the lister to send to.\n2. Once paid, the bounty is officially activated and the NI Team member will ask the hunter to begin work on the bounty.\n3. Once bounty has been completed and verified by the bounty lister, the NI Team member will send the TAO to the bounty hunter.\n\nNote: Since all middlepersons are volunteers and offer up their time freely, feel free to send an extra 1-5% as tip if you're feeling generous (Listers: Always send 0.126 TAO extra to pay for the transaction fee).`;
+          const content = `Hello ${activeBounty.lister} and ${activeBounty.hunter}, your bounty transaction will be handled by an NI Team member. \n\n Steps\n1. An NI Team member will post a TAO address for the lister to send to.\n2. Once paid, the bounty is officially activated and the NI Team member will ask the hunter to begin work on the bounty.\n3. Once bounty has been completed and verified by the bounty lister, the NI Team member will send the TAO to the bounty hunter.\n\nPlease note that both listers and hunters are required to pay a 7.5% platform fee, which totals to 15%. Listers, please remember to include an extra 0.001 TAO to cover the transaction fee.`;
           await interaction.channel.send({
             content: content,
             components: [
