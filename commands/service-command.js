@@ -6,7 +6,7 @@ const {
   PermissionFlagsBits,
 } = require("discord.js");
 const Discord = require("discord.js");
-const { Bounty, active_bounties } = require("../_utils/bounty");
+const { Service, active_services } = require("../_utils/service");
 const { CreateChannelCategory } = require("../_helpers/CreateChannelCategory");
 const { archive_channel } = require("../_helpers/archive-channel");
 const { config } = require("../_utils/config");
@@ -22,10 +22,11 @@ const TimeFormat = new Intl.DateTimeFormat("en-US", {
   hour12: true,
 });
 
-async function setup_bounty_command(client) {
+async function setup_service_command(client) {
   // Handle Button Interactions
   client.on("interactionCreate", async (interaction) => {
     if (!interaction.isButton()) return;
+
     const ID_PARTS = interaction.customId.split("-");
     let command = ID_PARTS[0];
     const key = ID_PARTS[1];
@@ -33,17 +34,17 @@ async function setup_bounty_command(client) {
       (channel) => channel.type === 4
     );
     const POSITION_LENGTH = all_categories.size;
-    let activeBounty = active_bounties.get(key);
+    let activeService = active_services.get(key);
 
     switch (command) {
-      case "startBounty":
+      case "startService":
         // check if person who clicked is the person who requested the trade
-        if (interaction.user.id === activeBounty.lister.id) {
+        if (interaction.user.id === activeService.lister.id) {
           // create channel and add both users to it
           // channel should be under the category of the "active trades" channel
           // get active trades channel category by name match
 
-          let active_bounties_category = await GetActiveBountiesCategory(
+          let active_services_category = await GetActiveServicesCategory(
             all_categories,
             interaction.guild,
             POSITION_LENGTH
@@ -51,9 +52,9 @@ async function setup_bounty_command(client) {
 
           // deny everyone from seeing inside
           const channel = await interaction.guild.channels.create({
-            name: `${activeBounty.lister.username}-${activeBounty.hunter.username}-bounty${activeBounty.bounty_number}`,
+            name: `${activeService.lister.username}-${activeService.hunter.username}-service${activeService.service_number}`,
             type: 0,
-            parent: active_bounties_category,
+            parent: active_services_category,
             permissionOverwrites: [
               {
                 id: interaction.guild.roles.everyone,
@@ -65,16 +66,16 @@ async function setup_bounty_command(client) {
                 allow: [PermissionFlagsBits.ViewChannel],
               },
               {
-                id: activeBounty.lister.id,
+                id: activeService.lister.id,
                 allow: [PermissionFlagsBits.ViewChannel],
               },
               {
-                id: activeBounty.hunter.id,
+                id: activeService.hunter.id,
                 allow: [PermissionFlagsBits.ViewChannel],
               },
             ],
           });
-          activeBounty.channel = channel;
+          activeService.channel = channel;
           console.log(
             `[${TimeFormat.format(new Date())}]`,
             "Created new channel",
@@ -82,38 +83,38 @@ async function setup_bounty_command(client) {
           );
 
           // send message alerting both users to the channel and request for confirmation by partner
-          let content = `${activeBounty.lister} has initiated a bounty request with you ${activeBounty.hunter} for bounty ${activeBounty.bounty_number}. \n\nPlease accept or deny by clicking the buttons below. \n\nNote: all messages in bounty channels will be logged and can be used as evidence in the event of a dispute. \n\nWARNING: Scammers will try to impersonate other users through DMs. For that reason, all bounties are to be conducted within this server. Please be careful when interacting with someone you don't know. If you are unsure, please ask a moderator for help.`;
+          let content = `${activeService.lister} has initiated a service request with you ${activeService.hunter} for service ${activeService.service_number}. \n\nPlease accept or deny by clicking the buttons below. \n\nNote: all messages in service channels will be logged and can be used as evidence in the event of a dispute. \n\nWARNING: Scammers will try to impersonate other users through DMs. For that reason, all services are to be conducted within this server. Please be careful when interacting with someone you don't know. If you are unsure, please ask a moderator for help.`;
           await channel.send({
             content: content,
             components: [
               new Discord.ActionRowBuilder().addComponents(
                 new Discord.ButtonBuilder()
-                  .setCustomId(`confirmBounty-${key}`)
+                  .setCustomId(`confirmService-${key}`)
                   .setLabel("Accept")
                   .setStyle(ButtonStyle.Success),
                 new Discord.ButtonBuilder()
-                  .setCustomId(`cancelBounty-${key}`)
+                  .setCustomId(`cancelService-${key}`)
                   .setLabel("Deny")
                   .setStyle(ButtonStyle.Danger)
               ),
             ],
           });
 
-          content = `Bounty request sent to ${activeBounty.hunter}. \n\nWARNING: Scammers will try to impersonate other users through DMs. For that reason, all bounties are to be conducted within this server. Please be careful when interacting with someone you don't know. If you are unsure, please ask a moderator for help.`;
+          content = `service request sent to ${activeService.hunter}. \n\nWARNING: Scammers will try to impersonate other users through DMs. For that reason, all services are to be conducted within this server. Please be careful when interacting with someone you don't know. If you are unsure, please ask a moderator for help.`;
           await interaction.update({
             content: content,
             components: [],
           });
         } else {
           console.log(
-            `Id is different. Expected ${activeBounty.lister.id} but got ${interaction.user.id}`
+            `Id is different. Expected ${activeService.lister.id} but got ${interaction.user.id}`
           );
         }
         break;
-      case "confirmBounty":
+      case "confirmService":
         // check if person who clicked is the person who requested the trade
-        if (interaction.user.id === activeBounty.hunter.id) {
-          activeBounty.hunter_accepted = true;
+        if (interaction.user.id === activeService.hunter.id) {
+          activeService.hunter_accepted = true;
 
           await interaction
             .update({
@@ -121,14 +122,14 @@ async function setup_bounty_command(client) {
             })
             .catch((_) => null);
 
-          const content = `Hello ${activeBounty.lister} and ${activeBounty.hunter}, your bounty transaction will be handled by an NI Team member. \n\n Steps\n1. An NI Team member will post a TAO address for the lister to send to.\n2. Once paid, the bounty is officially activated and the NI Team member will ask the hunter to begin work on the bounty.\n3. Once bounty has been completed and verified by the bounty lister, the NI Team member will send the TAO to the bounty hunter.\n\nPlease note that both listers and hunters are required to pay a 7.5% platform fee, which totals to 15%. Listers, please remember to include an extra 0.001 TAO to cover the transaction fee.`;
+          const content = `Hello ${activeService.lister} and ${activeService.hunter}, your service transaction will be handled by an NI Team member. \n\n Steps\n1. An NI Team member will post a TAO address for the lister to send to.\n2. Once paid, the service is officially activated and the NI Team member will ask the hunter to begin work on the service.\n3. Once service has been completed and verified by the service lister, the NI Team member will send the TAO to the service hunter.\n\nPlease note that both listers and hunters are required to pay a 7.5% platform fee, which totals to 15%. Listers, please remember to include an extra 0.001 TAO to cover the transaction fee.`;
           await interaction.channel.send({
             content: content,
             components: [
               new Discord.ActionRowBuilder().addComponents(
                 new Discord.ButtonBuilder()
-                  .setCustomId(`completeBounty-${key}`)
-                  .setLabel("Complete Bounty")
+                  .setCustomId(`completeService-${key}`)
+                  .setLabel("Complete Service")
                   .setStyle(ButtonStyle.Success)
               ),
             ],
@@ -137,9 +138,9 @@ async function setup_bounty_command(client) {
           const roleNITeam = interaction.guild.roles.cache.find(
             (role) => role.name === config.team_role_name
           );
-          // await activeBounty.channel.permissionOverwrites.create(roleNITeam, {
-          //   ViewChannel: true,
-          // });
+          await activeService.channel.permissionOverwrites.create(roleNITeam, {
+            ViewChannel: true,
+          });
 
           await interaction.guild.members
             .fetch()
@@ -155,18 +156,18 @@ async function setup_bounty_command(client) {
               return memberIDs;
             })
             .then((ids) => {
-              ids.map((id) => activeBounty.addMiddlePerson(id));
+              ids.map((id) => activeService.addMiddlePerson(id));
             });
         } else {
           interaction.reply({
-            content: "Only the bounty hunter can accept the bounty listing.",
+            content: "Only the service hunter can accept the service listing.",
             ephemeral: true,
           });
         }
         break;
-      case "completeBounty":
+      case "completeService":
         // ensure user is part of NI Team
-        if (activeBounty.hasMiddlePerson(interaction.user.id)) {
+        if (activeService.hasMiddlePerson(interaction.user.id)) {
           await GetArchivesCategory(
             all_categories,
             interaction.guild,
@@ -181,31 +182,34 @@ async function setup_bounty_command(client) {
 
           await interaction.channel
             .send({
-              content: "Bounty Complete. Archiving...",
+              content: "Service Complete. Archiving...",
             })
             .catch((_) => null);
 
-          archive_channel(interaction, activeBounty, "Bounty");
-          active_bounties.delete(key);
+          archive_channel(interaction, activeService, "Service");
+          active_services.delete(key);
         } else {
           await interaction.reply({
-            content: "Only members of the NI Team can complete the bounty.",
+            content: "Only members of the NI Team can complete the service.",
             ephemeral: true,
           });
         }
         break;
-      case "cancelBounty":
+      case "cancelService":
         // check if person who clicked is the person who requested the trade
         let cancel_party;
-        if (!!activeBounty && interaction.user.id === activeBounty.lister.id) {
+        if (
+          !!activeService &&
+          interaction.user.id === activeService.lister.id
+        ) {
           cancel_party = "lister";
         }
 
-        const declined_content = `Bounty has been declined by ${
-          !!activeBounty
+        const declined_content = `service has been declined by ${
+          !!activeService
             ? cancel_party == "lister"
-              ? activeBounty.lister
-              : activeBounty.hunter
+              ? activeService.lister
+              : activeService.hunter
             : "system reset"
         }.`;
 
@@ -224,8 +228,8 @@ async function setup_bounty_command(client) {
           })
           .catch((err) => console.log(err));
 
-        archive_channel(interaction, activeBounty, "Bounty");
-        active_bounties.delete(key);
+        archive_channel(interaction, activeService, "Service");
+        active_services.delete(key);
         break;
     }
   });
@@ -249,91 +253,91 @@ async function setup_bounty_command(client) {
   });
 }
 
-async function GetActiveBountiesCategory(
+async function GetActiveServicesCategory(
   all_categories,
   guild,
   POSITION_LENGTH
 ) {
-  const ChannelName = config.active_bounties_category;
-  let active_bounties_category = await CreateChannelCategory({
+  const ChannelName = config.active_services_category;
+  let active_services_category = await CreateChannelCategory({
     all_categories,
     ChannelName,
     guild,
     positionLength: POSITION_LENGTH,
   });
-  return active_bounties_category;
+  return active_services_category;
 }
 
 async function GetArchivesCategory(all_categories, guild, POSITION_LENGTH) {
   const ChannelName = config.archives_category;
-  let active_bounties_category = await CreateChannelCategory({
+  let active_services_category = await CreateChannelCategory({
     all_categories,
     ChannelName,
     guild,
     positionLength: POSITION_LENGTH,
   });
-  return active_bounties_category;
+  return active_services_category;
 }
 
 const data = new SlashCommandBuilder()
-  .setName("bounty")
+  .setName("service")
   .setDescription(
-    "Creates a bounty channel with lister, hunter, and middlemen."
+    "Creates a service channel with lister, hunter, and middlemen."
   )
   .addUserOption((option) =>
     option
       .setName("hunter")
-      .setDescription("Who is the chosen bounty hunter?")
+      .setDescription("Who is the chosen service hunter?")
       .setRequired(true)
   )
   .addNumberOption((option) =>
     option
-      .setName("bounty-number")
-      .setDescription("Which bounty is this for?")
+      .setName("service-number")
+      .setDescription("Which service is this for?")
       .setRequired(true)
   );
 
 async function execute(interaction) {
   // generate random 8 character string
-  const bounty_id = Math.random().toString(36).substring(2, 10);
+  const service_id = Math.random().toString(36).substring(2, 10);
   const hunter = interaction.options.getUser("hunter");
 
   // verify partner is not self, or bot
   if (hunter.id === interaction.user.id) {
     return interaction.reply({
-      content: "You cannot list a bounty with yourself.",
+      content: "You cannot list a service with yourself.",
       ephemeral: true,
     });
   } else if (hunter.bot) {
     return interaction.reply({
-      content: "You cannot list a bounty with a bot.",
+      content: "You cannot list a service with a bot.",
       ephemeral: true,
     });
   }
 
-  const bounty_number = interaction.options.getNumber("bounty-number");
+  const service_number = interaction.options.getNumber("service-number");
 
   // ensure amount is valid
-  if (bounty_number <= 0) {
+  if (service_number <= 0) {
     return interaction.reply({
-      content: "You must specify a valid bounty number.",
+      content: "You must specify a valid service number.",
       ephemeral: true,
     });
   }
 
   const actionrow = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
-      .setCustomId(`startBounty-${bounty_id}`)
+      .setCustomId(`startService-${service_id}`)
       .setLabel("Confirm")
       .setStyle(ButtonStyle.Success)
   );
 
-  active_bounties.set(
-    bounty_id,
-    new Bounty(interaction.user, hunter, bounty_number, bounty_id)
+  active_services.set(
+    service_id,
+    new Service(interaction.user, hunter, service_number, service_id)
   );
 
-  content = `You want to create a bounty with ${hunter} for bounty ${bounty_number}?`;
+  content = `You want to create a service with ${hunter} for service ${service_number}?`;
   return interaction
     .reply({
       content: content,
@@ -341,12 +345,12 @@ async function execute(interaction) {
       ephemeral: true,
     })
     .then(() => {
-      console.log("Posted bounty request.");
+      console.log("Posted service request.");
     });
 }
 
 module.exports = {
-  setup_bounty_command,
+  setup_service_command,
   data,
   execute,
 };

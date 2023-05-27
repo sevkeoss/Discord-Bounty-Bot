@@ -1,13 +1,13 @@
 const { config } = require("../_utils/config");
 const { PermissionFlagsBits } = require("discord.js");
 
-async function archive_channel(interaction, activeBounty) {
+async function archive_channel(interaction, activeBounty, command_str) {
   const parsedChannel = interaction.guild.channels.cache.find(
     (channel) => channel.name === config.archives_category
   );
 
   await interaction.channel.send({
-    content: "Bounty Archived",
+    content: `${command_str} Archived`,
     components: [],
   });
 
