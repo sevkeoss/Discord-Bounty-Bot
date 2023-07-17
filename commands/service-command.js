@@ -196,6 +196,12 @@ async function setup_service_command(client) {
         }
         break;
       case "cancelService":
+        await GetArchivesCategory(
+          all_categories,
+          interaction.guild,
+          POSITION_LENGTH
+        );
+
         // check if person who clicked is the person who requested the trade
         let cancel_party;
         if (
@@ -270,6 +276,7 @@ async function GetActiveServicesCategory(
 
 async function GetArchivesCategory(all_categories, guild, POSITION_LENGTH) {
   const ChannelName = config.archives_category;
+  console.log("In Get: " + ChannelName);
   let active_services_category = await CreateChannelCategory({
     all_categories,
     ChannelName,

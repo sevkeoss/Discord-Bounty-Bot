@@ -195,6 +195,12 @@ async function setup_bounty_command(client) {
         }
         break;
       case "cancelBounty":
+        await GetArchivesCategory(
+          all_categories,
+          interaction.guild,
+          POSITION_LENGTH
+        );
+
         // check if person who clicked is the person who requested the trade
         let cancel_party;
         if (!!activeBounty && interaction.user.id === activeBounty.lister.id) {
